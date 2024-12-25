@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
 // Generator генерирует последовательность чисел 1,2,3 и т.д. и
@@ -14,12 +15,29 @@ import (
 func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 	// 1. Функция Generator
 	// ...
+	var num int64
+	defer close(ch)
+	for {
+		select {
+		case ch <- num:
+			fn(num)
+			num++
+		case <-ctx.Done():
+			return
+
+		}
+	}
 }
 
 // Worker читает число из канала in и пишет его в канал out.
 func Worker(in <-chan int64, out chan<- int64) {
 	// 2. Функция Worker
 	// ...
+	for num := range in {
+		out <- num
+
+	}
+
 }
 
 func main() {
@@ -27,6 +45,8 @@ func main() {
 
 	// 3. Создание контекста
 	// ...
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
 	// для проверки будем считать количество и сумму отправленных чисел
 	var inputSum int64   // сумма сгенерированных чисел
@@ -38,7 +58,7 @@ func main() {
 		inputCount++
 	})
 
-	const NumOut = 5 // количество обрабатывающих горутин и каналов
+	const NumOut = 15 // количество обрабатывающих горутин и каналов
 	// outs — слайс каналов, куда будут записываться числа из chIn
 	outs := make([]chan int64, NumOut)
 	for i := 0; i < NumOut; i++ {
@@ -56,6 +76,18 @@ func main() {
 
 	// 4. Собираем числа из каналов outs
 	// ...
+	for i, ch := range outs {
+		wg.Add(1)
+		go func(ch chan<- int64, i int64) {
+			defer wg.Done()
+			for {
+				v, ok := <-ch
+				if !ok {
+					return
+				}
+			}
+		}
+	}
 
 	go func() {
 		// ждём завершения работы всех горутин для outs
@@ -69,6 +101,10 @@ func main() {
 
 	// 5. Читаем числа из результирующего канала
 	// ...
+	for v := range chOut {
+		sum += v
+
+	}
 
 	fmt.Println("Количество чисел", inputCount, count)
 	fmt.Println("Сумма чисел", inputSum, sum)
