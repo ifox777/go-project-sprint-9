@@ -76,17 +76,16 @@ func main() {
 
 	// 4. Собираем числа из каналов outs
 	// ...
-	for i, ch := range outs {
+	for i, in := range outs {
 		wg.Add(1)
-		go func(ch chan<- int64, i int64) {
+		go func(in <-chan int64, i int) {
 			defer wg.Done()
-			for {
-				v, ok := <-ch
-				if !ok {
-					return
-				}
+			for num := range in {
+				amounts[i] += num
+				chOut <- num
 			}
-		}
+		}(in, i)
+
 	}
 
 	go func() {
@@ -103,6 +102,7 @@ func main() {
 	// ...
 	for v := range chOut {
 		sum += v
+		count++
 
 	}
 
