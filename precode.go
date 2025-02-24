@@ -85,15 +85,18 @@ func main() {
 		wg.Add(1)
 		go func(in <-chan int64, i int) {
 			defer wg.Done()
-			for num := range in {
-				amounts[i]++
-				//fmt.Printf("%d: %d\n", num, amounts[i])
-				chOut <- num
-			}
-		}(in, i)
-
-	}
-
+   amounts := make([]int, NumOut) // Ensure amounts is initialized
+   for i, in := range outs {
+       wg.Add(1)
+       go func(in <-chan int64, i int) {
+           defer wg.Done()
+           for num := range in {
+               amounts[i]++
+               //fmt.Printf("%d: %d\n", num, amounts[i])
+               chOut <- num
+           }
+       }(in, i)
+   }
 	go func() {
 		// ждём завершения работы всех горутин для outs
 		wg.Wait()
