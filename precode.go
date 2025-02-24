@@ -58,14 +58,10 @@ func main() {
 	var inputCount int64 // количество сгенерированных чисел
 
 	// генерируем числа, считая параллельно их количество и сумму
-	go Generator(ctx, chIn, func(i int64) {
-		mu.Lock()
-		inputSum += i
-		inputCount++
-		mu.Unlock()
-		//atomic.AddInt64(&inputSum, i)
-		//atomic.AddInt64(&inputCount, 1)
-	})
+ go Generator(ctx, chIn, func(i int64) {
+     atomic.AddInt64(&inputSum, i)
+     atomic.AddInt64(&inputCount, 1)
+ })
 
 	const NumOut = 3 // количество обрабатывающих горутин и каналов
 	// outs — слайс каналов, куда будут записываться числа из chIn
